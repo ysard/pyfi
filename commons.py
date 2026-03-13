@@ -68,6 +68,11 @@ ASSURANCE_VIE_RATES = {
     2025: 0.0315,
 }
 
+try:
+    # Try to load French locale if available
+    locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+except locale.Error:
+    pass
 
 def eur_fmt(value, fmt="%.2f", currency="€"):
     """Format the given value to a monetary localized amount in euros"""
