@@ -367,7 +367,8 @@ def make_plotly(
     for trace in fig.data:
         last_value = trace.y[-1]
         gains = last_value - capital_initial
-        trace.name = f"{trace.name} ({last_value:.0f} €, {"+" if gains > 0 else ""}{gains:.0f} €)"
+        # Formatting: ints + grouped monetary values
+        trace.name = f"{trace.name} ({cm.eur_fmt(last_value, "%.0f")}, {"+" if gains > 0 else ""}{cm.eur_fmt(gains, "%.0f")})"
 
     return fig
 
