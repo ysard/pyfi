@@ -243,7 +243,7 @@ def make_graphs(
     plt.xticks(rotation=45)
 
     plt.legend()
-    plt.title("Comparaison des placements : Assurance Vie, PEL, Livret A, PEA (S&P 500)")
+    plt.title("Comparaison des placements : Fonds en euros en assurance vie, PEL, Livret A, PEA (S&P 500)")
     plt.xlabel("Années")
     plt.ylabel("Capital (€)")
     plt.grid()
@@ -298,7 +298,7 @@ def make_plotly(
         x="Date",
         y="Capital",
         color="Placement",
-        title="Comparaison des placements : Assurance Vie, PEL, Livret A, PEA (S&P 500)",
+        title="Comparaison des placements : Fonds en euros en assurance vie, PEL, Livret A, PEA (S&P 500)",
     )
 
     # Initial capital as reference (1st val of any serie)
@@ -593,7 +593,7 @@ def simulate(
     data = {
         "PEL": pel_values,  # WARNING: Beware with data renaming (sync in make_graphs)
         "Livret A": livret_values,
-        "Assurance Vie (€)": av_values,
+        "Assurance Vie (fds €)": av_values,
         "PEL virtuel SANS taxes": pel_values_wo_tax,
         "S&P500": sp500_values,  # WARNING: Beware with data renaming (sync in make_graphs)
     }
@@ -602,7 +602,7 @@ def simulate(
         {
             "PEL (infl)": pel_real_values,
             "Livret A (infl)": livret_real_values,
-            "Assurance Vie (€) (infl)": av_real_values,
+            "Assurance Vie (fds €) (infl)": av_real_values,
             "PEL virtuel SANS taxes (infl)": pel_real_values_wo_tax,
             "S&P500 (infl)": sp500_real_values,
         }
