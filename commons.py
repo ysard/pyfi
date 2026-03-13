@@ -1,6 +1,7 @@
 """Common configuration settings, global constants, dataset files used by the simulations"""
 # Standard imports
 from pathlib import Path
+import locale
 
 
 ASSETS_DIR = Path("./assets/")
@@ -66,3 +67,8 @@ ASSURANCE_VIE_RATES = {
     2024: 0.031,
     2025: 0.0315,
 }
+
+
+def eur_fmt(value, fmt="%.2f", currency="€"):
+    """Format the given value to a monetary localized amount in euros"""
+    return locale.format_string(fmt, value, grouping=True, monetary=True) + f" {currency}"
