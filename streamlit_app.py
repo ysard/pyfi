@@ -30,7 +30,7 @@ def web_interface():
     start_date = st.sidebar.date_input(
         "Date de début",
         # No inflation rate available before
-        min_value=date(1991, 1, 1),
+        min_value=date(1999, 1, 1),
         max_value=date.today(),
         value=date(2000, 1, 1),
     )
