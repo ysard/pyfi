@@ -229,7 +229,35 @@ def main():
     # Add CAGR table
     st.subheader("Rendement annuel composé réel")
     df_returns = get_cagr_df(dates, data, years_duration=ret["years_duration"])
-    st.dataframe(df_returns, width='stretch')
+
+    st.data_editor(
+        df_returns,
+        width="stretch",
+        column_config={
+            "Placement": st.column_config.Column(
+                pinned=True,  # stay visible on the left side
+                disabled=True,  # disable editing
+            ),
+            "Capital final (€)": st.column_config.NumberColumn(
+                help="Capital final brut en euros (hors fiscalité en sortie)",
+                format="euro",  # Monetary values
+                step=1,  # Remove decimals
+                disabled=True,
+            ),
+            "Gains (€)": st.column_config.NumberColumn(
+                help="Gains finaux en euros (hors fiscalité en sortie)",
+                format="euro",
+                step=1,
+                disabled=True,
+            ),
+            "CAGR réel (%)": st.column_config.NumberColumn(
+                help="Rendement annuel composé réel (hors fiscalité en sortie)",
+                format="percent",
+                step=0.0001,
+                disabled=True,
+            ),
+        },
+    )
     print(df_returns)
 
 
