@@ -1,5 +1,5 @@
 
-![Comparison of French investments: Life Insurance, PEL, Livret A, PEA (S&P 500), based on historical data](./assets/newplot.png)
+![Comparison of French investments: Euro-denominated life insurance, PEL, Livret A, PEA (S&P 500), based on historical data](./assets/newplot.png)
 
 *The graphic illustration presented is not a reliable indicator of
 the future performance of your investments. Its sole purpose is to
@@ -9,7 +9,7 @@ illustrate the mechanisms of an investment over the investment period.*
 
 ## Features
 
-- Comparison of returns on Livret A savings accounts, PEL savings accounts, life insurance, and the S&P 500;
+- Comparison of returns on Livret A savings accounts, PEL savings accounts, Euro-denominated life insurance, and the S&P 500;
 - Taxation taken into account;
 - Calculation of compound annual growth rate (CAGR);
 - Adjustment for inflation;
