@@ -98,12 +98,12 @@ def get_pel_net_interest(
 
     # PEL before 2011
     if int(age_years) == 10 and not PEL_YEARS_10:
-        # Anniversary!
-        # - PS tax first on interests
+        # Anniversary! 1st month of the year 10
+        # - PS tax first on interests accumulated since the opening
         # - Compute the interests for the current month after
         PEL_YEARS_10 = True
 
-        print("10 years anniversary!! Tax PS from past interests", age_years)
+        print("10 years anniversary!! Tax PS from past interests", age_years, current_date)
         # pel_values[-1] - pel_values[0]
         accumulated_interests = pel_amount - capital_initial
 
@@ -126,7 +126,7 @@ def get_pel_net_interest(
     if age_years < 10:
         return interest  # PS différés
 
-    if age_years < 11:
+    if age_years < 12:
         print("PS only")
         return interest * (1 - ps_rate)
 
