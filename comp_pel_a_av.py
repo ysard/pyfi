@@ -39,12 +39,10 @@ FRAIS_GESTION_AV = 0.00  # included in av rate
 IPCH = False
 
 # Tax rates
-PS = 0.172
 IR_PFU = 0.128
 IR_TMI = 0.11
 IR_AV = 0.075
 PFU = 0.30
-PS_2026 = 0.186
 PFU_2026 = 0.314
 
 # False for standard taxation using PS and TMI
@@ -59,6 +57,42 @@ PFU_ENABLED = True
 DT_PEL_START = datetime.strptime(DATE_DEBUT, "%Y-%m-%d")
 # Used to trigger tax event after 10 years for PEL opened before 2011-03-01
 PEL_YEARS_10 = None
+
+
+def get_ps_rate(current_date):
+    """Get the social security contributions rate effective on the given date
+
+    Table from: https://www.moneyvox.fr/placement/prelevements-sociaux.php
+    """
+    if current_date < datetime(1996, 2, 1):
+        return 0.0
+    elif current_date < datetime(1997, 1, 1):
+        return 0.5 / 100
+    elif current_date < datetime(1998, 1, 1):
+        return 3.9 / 100
+    elif current_date < datetime(2004, 7, 1):
+        return 10.0 / 100
+    elif current_date < datetime(2005, 1, 1):
+        return 10.3 / 100
+    elif current_date < datetime(2009, 1, 1):
+        return 11.0 / 100
+    elif current_date < datetime(2011, 1, 1):
+        return 12.1 / 100
+    elif current_date < datetime(2011, 10, 1):
+        return 12.3 / 100
+    elif current_date < datetime(2012, 7, 1):
+        return 13.5 / 100
+    elif current_date < datetime(2013, 1, 1):
+        return 15.5 / 100
+    elif current_date < datetime(2018, 1, 1):
+        return 15.5 / 100  # change in allocation
+    elif current_date < datetime(2019, 1, 1):
+        return 17.2 / 100
+    elif current_date < datetime(2026, 1, 1):
+        return 17.2 / 100  # change in allocation
+
+    # Since 2026-01-01
+    return 18.6 / 100
 
 
 def get_pel_net_interest(
@@ -78,7 +112,7 @@ def get_pel_net_interest(
     global PEL_YEARS_10
 
     interest = pel_amount * pel_rate / 12
-    ps_rate = PS if current_date < datetime(2026, 1, 1) else PS_2026
+    ps_rate = get_ps_rate(current_date)
     pfu_rate = PFU if current_date < datetime(2026, 1, 1) else PFU_2026
 
     age_years = (current_date - open_date).days / 365.25
@@ -188,10 +222,10 @@ def make_graphs(
             for color, (label, av_values) in zip(iter(colors), data.items())
             if label.startswith("Assurance Vie")
         )
-        av_annual_rate = find_av_rate(dates[-1])
+        current_date = dates[-1]
         for color, (label, av_values) in g:
             print(f"{label}:")
-            av_withdrawal_sold = get_av_withdrawal_sold(av_values, av_annual_rate)
+            av_withdrawal_sold = get_av_withdrawal_sold(av_values, current_date)
             show_h_limit(av_withdrawal_sold, f"{label} solde final", color)
 
             # ax.axhline(av_withdrawal_sold, c=color, linestyle="--", lw=0.9, alpha=0.5)
@@ -314,11 +348,11 @@ def make_plotly(
 
     # AV limit: Net capital
     if show_av_withdrawal_sold:
-        av_annual_rate = find_av_rate(dates[-1])
+        current_date = dates[-1]
         # WARNING: Beware with data renaming (sync in make_graphs)
         for label, values in data.items():
             if label.startswith("Assurance Vie"):
-                av_withdrawal_sold = get_av_withdrawal_sold(values, av_annual_rate)
+                av_withdrawal_sold = get_av_withdrawal_sold(values, current_date)
 
                 show_h_limit(av_withdrawal_sold, f"{label} AV solde final")
 
@@ -374,32 +408,37 @@ def make_plotly(
 
 
 def get_av_withdrawal_sold(
-    av_values: list, av_annual_rate: float, years_duration: float = DUREE_ANNEES
+    av_values: list, current_date: datetime, years_duration: float = DUREE_ANNEES
 ) -> float:
     """Get the amount net of taxes in case of full liquidation of the AV
 
     :param av_values: Computed list of simulated values over the period
         (we need the amount of the primes to calculate the gains).
-    :param av_annual_rate: Last annual_rate used to simulate optimal withdrawal
-        and future rate to compensate taxation (not really used here).
-        See :meth:`rendement_minimal_global`.
+    :param current_date: Used to compute the current PS rate and to get the annual rate
+        applied at the withdrawal date.
     """
+    ps_rate = get_ps_rate(current_date)
+
     if not EXT_MODULE_FOUND:
         # Naive withdrawal tax on AV
         print(av_values[-1])
         print(av_values[-1] - av_values[0])
         av_gains = av_values[-1] - av_values[0]
-        av_tax = av_gains * (PS + IR_AV)  # NOTE: 8 years supposed, < 152000
+        av_tax = av_gains * (ps_rate + IR_AV)  # NOTE: 8 years supposed, < 152000
         av_withdrawal_sold = av_values[0] + av_gains - av_tax
         print(av_withdrawal_sold)
         return av_withdrawal_sold
 
     # Full withdrawal tax on AV
+    # Get the annual_rate at the withdrawal date. Used to simulate optimal withdrawal
+    # and future rate to compensate taxation (not really used here).
+    # See :meth:`rendement_minimal_global`.
+    av_annual_rate = find_av_rate(current_date)
     *_, av_withdrawal_sold = rendement_minimal_global(
         encours=av_values[-1],
         primes=av_values[0],
         rachat=av_values[-1],  # Full withdrawal
-        taux_ps=PS,
+        taux_ps=ps_rate,
         taux_av=av_annual_rate,
         frais_av=0,
         horizon=1,
@@ -418,13 +457,13 @@ def get_pea_withdrawal_sold(current_date, gross_capital):
 
     .. note:: We suppose that the PEA is 5 years old (no IR, just PS).
     """
-    ps_rate = PS if current_date < datetime(2026, 1, 1) else PS_2026
+    ps_rate = get_ps_rate(current_date)
     return gross_capital * (1 - ps_rate)
 
 
 def get_real_returns(
     data: dict[str, list[float]],
-    av_annual_rate: float,
+    current_date: datetime,
     years_duration: float = DUREE_ANNEES,
 ):
     """Get average real yield for every given dataset
@@ -432,14 +471,13 @@ def get_real_returns(
     Taux de croissance annuel composé / Compound annual growth rate (CAGR)
 
     :param data: All datasets of values simulated values over the period.
-    :param av_annual_rate: Last annual_rate used to simulate optimal withdrawal
-        and future rate to compensate taxation (not really used here).
-        See :meth:`rendement_minimal_global`.
+    :param current_date: Used to compute the current PS rate and to get the annual rate
+        applied at the withdrawal date.
     """
     real_returns = {}
     for label, values in data.items():
         final_value = (
-            get_av_withdrawal_sold(values, av_annual_rate)
+            get_av_withdrawal_sold(values, current_date)
             if "Assurance Vie" in label
             else values[-1]
         )
@@ -462,11 +500,9 @@ def get_cagr_df(
     :param data: All datasets of values simulated values over the period.
     :param years_duration: Duration of the study in years.
     """
-    av_annual_rate = find_av_rate(dates[-1])
-
     returns = get_real_returns(
         data,
-        av_annual_rate,
+        dates[-1],
         years_duration=years_duration
     )
 
