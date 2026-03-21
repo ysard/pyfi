@@ -30,6 +30,7 @@ SP500TR_RATES_FILEPATH = ASSETS_DIR / "^SP500TR.csv"
 
 ASSURANCE_VIE_RATES = {
     # https://leparticulier.lefigaro.fr/upload/internet_files/abonne/media/attribut/pdf/6335.pdf
+    # https://www.lequotidiendumedecin.fr/archives/assurance-vie-les-rendements-pour-2001-se-situent-entre-5-et-6
     1999: 0.0635,
     # https://www.lexpress.fr/economie/le-palmares-des-contrats-d-assurance-vie-en-2000_1351821.html
     2000: 0.0635,
