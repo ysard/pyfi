@@ -724,7 +724,7 @@ def test_get_pea_tax():
 
     # PS: 18.6%
     found = get_pea_withdrawal_sold(datetime(2026, 1, 1), 10000)
-    assert int(found) == 8140
+    assert round(found, 0) == 8140, found
 
 
 if __name__ == "__main__":
