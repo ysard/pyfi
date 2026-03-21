@@ -644,8 +644,6 @@ def simulate(
         }
     )
 
-    _ = get_real_returns(data, av_annual_rate, years_duration=years_duration)
-
     return dates, data
 
 
@@ -732,4 +730,8 @@ def test_get_pea_tax():
 if __name__ == "__main__":
     test_find_rates()
     test_get_pea_tax()
-    make_graphs(*simulate())
+    dates, data = simulate()
+    make_graphs(dates, data)
+
+    df_returns = get_cagr_df(dates, data, years_duration=DUREE_ANNEES)
+    print(df_returns)
