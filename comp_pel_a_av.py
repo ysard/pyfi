@@ -57,6 +57,8 @@ PFU_ENABLED = True
 DT_PEL_START = datetime.strptime(DATE_DEBUT, "%Y-%m-%d")
 # Used to trigger tax event after 10 years for PEL opened before 2011-03-01
 PEL_YEARS_10 = None
+# Used to differ historical interests on the PEL
+PEL_HISTORICAL_PS = []
 
 
 def get_ps_rate(current_date):
@@ -101,71 +103,94 @@ def get_pel_net_interest(
     open_date: datetime,
     current_date: datetime,
     capital_initial: float = CAPITAL_INITIAL,
-    pfu_enabled: bool=PFU_ENABLED,
-    ir_tmi: float=IR_TMI,
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
 ) -> float:
     """Compute the monthly interest amount for the given PEL characteristics
 
     .. note:: The age of the contract and its creation date affect its taxation.
+
+    Avant 2006:
+        PS aux taux historiques mis en attente, jusqu'à la fermeture du plan
+
+    Après 2006:
+        PS aux taux historiques mis en attente jusqu'à la 10ième année, puis payés
+        PS aux taux en vigueur au delà
+
+    En 2006:
+        Prélèvements des PS historiques sur tous les PEL de plus de 10 ans
+
+    Après 2011:
+        plus de taux historiques
     """
     # pylint: disable=global-statement
     global PEL_YEARS_10
+    # pylint: disable=global-statement
+    global PEL_HISTORICAL_PS
 
-    interest = pel_amount * pel_rate / 12
+    gross_interest = pel_amount * pel_rate / 12
     ps_rate = get_ps_rate(current_date)
     pfu_rate = PFU if current_date < datetime(2026, 1, 1) else PFU_2026
 
-    age_years = (current_date - open_date).days / 365.25
-    # print(age_years, current_date)
+    age_years = cm.num_years(open_date, end=current_date)
 
     full_taxation_rate = 1 - (pfu_rate if pfu_enabled else (ps_rate + ir_tmi))
 
     # PEL since 2018
     if open_date >= datetime(2018, 1, 1):
-        return interest * full_taxation_rate
+        return gross_interest * full_taxation_rate
 
     # PEL 2011-2017
     if open_date >= datetime(2011, 3, 1):
         if age_years < 12:
-            return interest * (1 - ps_rate)
-        return interest * full_taxation_rate
+            return gross_interest * (1 - ps_rate)
+        return gross_interest * full_taxation_rate
 
-    # PEL before 2011
-    if int(age_years) == 10 and not PEL_YEARS_10:
-        # Anniversary! 1st month of the year 10
-        # - PS tax first on interests accumulated since the opening
-        # - Compute the interests for the current month after
+    # PEL before 2011-03-01
+    first = age_years == 10 and open_date >= datetime(1996, 1, 1)
+    second = (
+        age_years > 10
+        and open_date < datetime(1996, 1, 1)
+        and current_date >= datetime(2006, 12, 1)
+    )
+    if not PEL_YEARS_10 and (first or second):
+        # Anniversary! 1st month of the year 10, flush historical interests
+        # - Add interests of the last period
+        # - Substract social contribution payments
         PEL_YEARS_10 = True
-
-        print("10 years anniversary!! Tax PS from past interests", age_years, current_date)
-        # pel_values[-1] - pel_values[0]
-        accumulated_interests = pel_amount - capital_initial
-
-        # Apply PS
-        print(f"Interests accumulated before PS tax: {accumulated_interests:.2f}")
-        social_contrib = accumulated_interests * ps_rate
+        # print(first, second)
         print(
-            "Interests accumulated after PS tax: "
-            f"{accumulated_interests - social_contrib:.2f} (theft: {social_contrib:.2f})"
+            f"{current_date.strftime("%Y-%m-%d")} 10/{age_years}"
+            "years anniversary!! Tax PS from past interests"
         )
 
-        # Total after tax
-        pel_amount -= social_contrib
-        # Recalculate interests on the new basis
-        interest = pel_amount * pel_rate / 12
+        # Apply PS
+        print(gross_interest, "at", ps_rate, gross_interest * ps_rate)
+        PEL_HISTORICAL_PS.append(gross_interest * ps_rate)
 
-        # Tax & Return the balance of the operation
-        return interest * (1 - ps_rate) - social_contrib
+        # print("Months:", len(PEL_HISTORICAL_PS))
+        # print(PEL_HISTORICAL_PS)
 
-    if age_years < 10:
-        return interest  # PS différés
+        social_contrib = sum(PEL_HISTORICAL_PS)
+        print("Apply pending social contrib", social_contrib)
+
+        # No more pending payments
+        PEL_HISTORICAL_PS = []
+
+        # Return the balance of the operation
+        return gross_interest - social_contrib
+
+    if not PEL_YEARS_10:  # age_years < 10 or open_date < datetime(1996,1,1):
+        print(gross_interest, "at", ps_rate, gross_interest * ps_rate)
+        PEL_HISTORICAL_PS.append(gross_interest * ps_rate)
+        return gross_interest  # PS différés
 
     if age_years < 12:
         print("PS only")
-        return interest * (1 - ps_rate)
+        return gross_interest * (1 - ps_rate)
 
-    print("Full tax enabled")
-    return interest * full_taxation_rate
+    print("Full tax enabled", full_taxation_rate)
+    return gross_interest * full_taxation_rate
 
 
 def make_graphs(
@@ -546,8 +571,13 @@ def simulate(
 
     :return: List of dates and dict of simulated data (dataset names as keys).
     """
+    # pylint: disable=global-statement
     global PEL_YEARS_10
+    # pylint: disable=global-statement
+    global PEL_HISTORICAL_PS
+
     PEL_YEARS_10 = None
+    PEL_HISTORICAL_PS = []
 
     # Prepare structures for computed the values
     pel_wo_tax = capital_initial
@@ -575,14 +605,21 @@ def simulate(
     # Rate may be fixed globally by user
     pel_rate = pel_rate if pel_rate else find_pel_rate(dt_pel_start)
 
+    # Pending interests for annual capital accumulation savings plans
+    pel_pending_interests = 0
+    pel_gross_pending_interests = 0
+    livret_pending_interests = 0
+    av_pending_interests = 0
+
     # Generate the full range of dates (+1 for the initial value)
     # WARNING: Les intérêts ne sont PAS calculés au prorata des jours restants du premier mois
     # (considéré comme complet).
-    dates = pd.date_range(start=start_date, periods=years_duration * 12 + 1, freq="ME")
-    for date in dates[1:]:
+    dates = pd.date_range(start=start_date, periods=years_duration * 12, freq="ME")
+    dates = pd.DatetimeIndex([dt_pel_start]).append(dates)
+    for month, date in enumerate(dates[1:], 1):
         # -------- PEL --------
         # Always the same rate without tax (virtual)
-        pel_wo_tax *= 1 + pel_rate / 12
+        pel_gross_pending_interests += pel_wo_tax * (pel_rate / 12)
         # Tax
         net_interest = get_pel_net_interest(
             pel,
@@ -591,28 +628,49 @@ def simulate(
             date,
             capital_initial=capital_initial,
             pfu_enabled=pfu_enabled,
-            ir_tmi=ir_tmi
+            ir_tmi=ir_tmi,
         )
-        pel += net_interest
+        pel_pending_interests += net_interest
 
         # -------- Livret A --------
         livret_rate = find_livreta_rate(date)
-        livret *= 1 + livret_rate / 12
+        livret_pending_interests += livret * (livret_rate / 12)
 
         # -------- Assurance Vie --------
         av_annual_rate = find_av_rate(date)
         monthly_rate = (av_annual_rate - av_fees_rate) / 12
-        av *= 1 + monthly_rate
+        av_pending_interests += av * monthly_rate
 
         # -------- S&P 500 --------
         sp500_rate = find_sp500_rate(date)
         sp500 *= 1 + sp500_rate
 
+        if month != 1 and month % 12 == 0:
+            pel += pel_pending_interests
+            pel_pending_interests = 0
+            accumulated_interests = pel - capital_initial
+
+            # -------- PEL --------
+            print(f"MERGE interests => {pel:.2f}")
+            print(f"Interests accumulated: {accumulated_interests:.2f}")
+            print(f"Pending social contrib: {sum(PEL_HISTORICAL_PS):.2f}")
+
+            pel_wo_tax += pel_gross_pending_interests
+            pel_gross_pending_interests = 0
+
+            # -------- Livret A --------
+            livret += livret_pending_interests
+            livret_pending_interests = 0
+
+            # -------- Assurance Vie --------
+            av += av_pending_interests
+            av_pending_interests = 0
+
         # Retain portfolio values
-        pel_values_wo_tax.append(pel_wo_tax)
-        pel_values.append(pel)
-        livret_values.append(livret)
-        av_values.append(av)
+        pel_values_wo_tax.append(pel_wo_tax + pel_gross_pending_interests)
+        pel_values.append(pel + pel_pending_interests)
+        livret_values.append(livret + livret_pending_interests)
+        av_values.append(av + av_pending_interests)
         sp500_values.append(sp500)
 
         # Apply inflation on gains & retain portfolio values
@@ -620,11 +678,17 @@ def simulate(
         monthly_inflation = annual_inflation / 12
         inflation_index *= 1 + monthly_inflation
 
-        pel_real_values_wo_tax.append(pel_wo_tax / inflation_index)
-        pel_real_values.append(pel / inflation_index)
-        livret_real_values.append(livret / inflation_index)
-        av_real_values.append(av / inflation_index)
+        pel_real_values_wo_tax.append(
+            (pel_wo_tax + pel_gross_pending_interests) / inflation_index
+        )
+        pel_real_values.append((pel + pel_pending_interests) / inflation_index)
+        livret_real_values.append((livret + livret_pending_interests) / inflation_index)
+        av_real_values.append((av + av_pending_interests) / inflation_index)
         sp500_real_values.append(sp500 / inflation_index)
+
+    # Purge of social contribution payments
+    # (if the simulation is stopped before the year 10 or 2006)
+    pel_values[-1] -= sum(PEL_HISTORICAL_PS)
 
     data = {
         "PEL": pel_values,  # WARNING: Beware with data renaming (sync in make_graphs)
