@@ -2,6 +2,7 @@
 # Standard imports
 from pathlib import Path
 import locale
+from dateutil.relativedelta import relativedelta
 
 
 ASSETS_DIR = Path("./assets/")
@@ -78,3 +79,24 @@ except locale.Error:
 def eur_fmt(value, fmt="%.2f", currency="€"):
     """Format the given value to a monetary localized amount in euros"""
     return locale.format_string(fmt, value, grouping=True, monetary=True) + f" {currency}"
+
+
+def yearsago(years, from_date=None) -> datetime:
+    """Get the date n years prior to the given date"""
+    if from_date is None:
+        from_date = datetime.now()
+    return from_date - relativedelta(years=years)
+
+
+def num_years(begin, end=None) -> int:
+    """Get the number of years between 2 dates
+
+    Leap years are taken into account.
+    """
+    if end is None:
+        end = datetime.now()
+    num_years = int((end - begin).days / 365.2425)
+    if begin > yearsago(num_years, end):
+        return num_years - 1
+    else:
+        return num_years
