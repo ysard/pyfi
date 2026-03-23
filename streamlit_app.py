@@ -228,7 +228,7 @@ def main():
 
     # Add CAGR table
     st.subheader("Rendement annuel composé réel")
-    df_returns = get_cagr_df(dates, data, years_duration=ret["years_duration"])
+    df_returns = get_cagr_df(dates, data)
 
     st.data_editor(
         df_returns,

@@ -250,9 +250,13 @@ def make_graphs(
             if label.startswith("Assurance Vie")
         )
         current_date = dates[-1]
+        # Exact number of years (float required)
+        years_duration = (dates[-1] - dates[0]).days / 365.2425
         for color, (label, av_values) in g:
             print(f"{label}:")
-            av_withdrawal_sold = get_av_withdrawal_sold(av_values, current_date)
+            av_withdrawal_sold = get_av_withdrawal_sold(
+                av_values, current_date, years_duration
+            )
             show_h_limit(av_withdrawal_sold, f"{label} solde final", color)
 
             # ax.axhline(av_withdrawal_sold, c=color, linestyle="--", lw=0.9, alpha=0.5)
@@ -377,7 +381,11 @@ def make_plotly(
         # WARNING: Beware with data renaming (sync in make_graphs)
         for label, values in data.items():
             if label.startswith("Assurance Vie"):
-                av_withdrawal_sold = get_av_withdrawal_sold(values, current_date)
+                # Exact number of years (float required)
+                years_duration = (dates[-1] - dates[0]).days / 365.2425
+                av_withdrawal_sold = get_av_withdrawal_sold(
+                    values, current_date, years_duration
+                )
 
                 show_h_limit(av_withdrawal_sold, f"{label} AV solde final")
 
@@ -433,7 +441,7 @@ def make_plotly(
 
 
 def get_av_withdrawal_sold(
-    av_values: list, current_date: datetime, years_duration: float = DUREE_ANNEES
+    av_values: list, current_date: datetime, years_duration: int | float
 ) -> float:
     """Get the amount net of taxes in case of full liquidation of the AV
 
@@ -441,6 +449,7 @@ def get_av_withdrawal_sold(
         (we need the amount of the primes to calculate the gains).
     :param current_date: Used to compute the current PS rate and to get the annual rate
         applied at the withdrawal date.
+    :param years_duration: Duration of the simulation.
     """
     ps_rate = get_ps_rate(current_date)
 
@@ -487,22 +496,25 @@ def get_pea_withdrawal_sold(current_date, gross_capital):
 
 
 def get_real_returns(
+    dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-    current_date: datetime,
-    years_duration: float = DUREE_ANNEES,
 ):
     """Get average real yield for every given dataset
 
     Taux de croissance annuel composé / Compound annual growth rate (CAGR)
 
+    :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
-    :param current_date: Used to compute the current PS rate and to get the annual rate
-        applied at the withdrawal date.
     """
     real_returns = {}
+
+    # Exact number of years (float required)
+    years_duration = (dates[-1] - dates[0]).days / 365.2425
+
     for label, values in data.items():
         final_value = (
-            get_av_withdrawal_sold(values, current_date)
+            # Use the current withdrawal date
+            get_av_withdrawal_sold(values, dates[-1], years_duration)
             if "Assurance Vie" in label
             else values[-1]
         )
@@ -517,19 +529,13 @@ def get_real_returns(
 def get_cagr_df(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-    years_duration: float,
 ) -> pd.DataFrame:
     """Build dataframe of CAGR for each given dataset
 
     :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
-    :param years_duration: Duration of the study in years.
     """
-    returns = get_real_returns(
-        data,
-        dates[-1],
-        years_duration=years_duration
-    )
+    returns = get_real_returns(dates, data)
 
     # df_returns = pd.DataFrame.from_dict(
     #     returns,
@@ -556,7 +562,7 @@ def get_cagr_df(
 def simulate(
     capital_initial: float = CAPITAL_INITIAL,
     start_date: str = DATE_DEBUT,
-    years_duration: int = DUREE_ANNEES,
+    years_duration: int | float = DUREE_ANNEES,
     ipch: bool = IPCH,
     dt_pel_start: datetime = DT_PEL_START,
     pel_rate: float = PEL_RATE,
@@ -796,5 +802,5 @@ if __name__ == "__main__":
     dates, data = simulate()
     make_graphs(dates, data)
 
-    df_returns = get_cagr_df(dates, data, years_duration=DUREE_ANNEES)
+    df_returns = get_cagr_df(dates, data)
     print(df_returns)
