@@ -56,7 +56,7 @@ PFU_ENABLED = True
 # End of user settings
 # ====================
 
-DT_PEL_START = datetime.strptime(DATE_DEBUT, "%Y-%m-%d")
+START_DATE = datetime.strptime(DATE_DEBUT, "%Y-%m-%d")
 # Used to trigger tax event after 10 years for PEL opened before 2011-03-01
 PEL_YEARS_10 = None
 # Used to differ historical interests on the PEL
@@ -198,7 +198,6 @@ def get_pel_net_interest(
 def make_graphs(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-    dt_pel_start: datetime = DT_PEL_START,
     show_av_withdrawal_sold: bool = True,
     show_pea_withdrawal_sold: bool = True,
     interactive=True,
@@ -208,7 +207,6 @@ def make_graphs(
     :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
         Dataset names as keys, values as values.
-    :key dt_pel_start: PEL opening date (redundant with the first value in dates).
     :key show_av_withdrawal_sold: Show an indicator about the amount of net
         capital at the end of the AV contract. (default: True).
     :key show_pea_withdrawal_sold: Show an indicator about the amount of net
@@ -223,11 +221,13 @@ def make_graphs(
         """Show an horizontal indicator for the amount of net capital after full withdrawal"""
         ax.axhline(sold, c=color, linestyle="--", lw=0.9, alpha=0.5)
         plt.text(
-            dates[0],
+            start_date,
             sold,
             title,
             horizontalalignment="left",
         )
+
+    start_date = dates[0]
 
     fig = plt.figure()
     ax = fig.gca()
@@ -251,7 +251,7 @@ def make_graphs(
         )
         current_date = dates[-1]
         # Exact number of years (float required)
-        years_duration = (dates[-1] - dates[0]).days / 365.2425
+        years_duration = (dates[-1] - start_date).days / 365.2425
         for color, (label, av_values) in g:
             print(f"{label}:")
             av_withdrawal_sold = get_av_withdrawal_sold(
@@ -261,7 +261,7 @@ def make_graphs(
 
             # ax.axhline(av_withdrawal_sold, c=color, linestyle="--", lw=0.9, alpha=0.5)
             # plt.text(
-            #     dates[0],
+            #     start_date,
             #     av_withdrawal_sold,
             #     "AV solde final",
             #     horizontalalignment="right",
@@ -280,8 +280,8 @@ def make_graphs(
             show_h_limit(pea_withdrawal_sold, f"{label} solde final", color)
 
     # PEL closure date (used to show an indicator only for PEL opened after 2011-03-01)
-    dt_pel_closure = dt_pel_start.replace(year=dt_pel_start.year + 15)
-    if dt_pel_start >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
+    dt_pel_closure = start_date.replace(year=start_date.year + 15)
+    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
         # Forced closure
         ax.axvline(dt_pel_closure, color="blue", linestyle="--", lw=0.9, alpha=0.5)
         plt.text(
@@ -303,7 +303,7 @@ def make_graphs(
     ax.xaxis.set_major_locator(years)
     ax.xaxis.set_major_formatter(years_fmt)
     # Show 1st xaxis tick
-    ax.set_xlim(xmin=dates[0].to_numpy().astype("datetime64[Y]"))
+    ax.set_xlim(xmin=start_date.to_numpy().astype("datetime64[Y]"))
     plt.xticks(rotation=45)
 
     plt.legend()
@@ -320,7 +320,6 @@ def make_graphs(
 def make_plotly(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-    dt_pel_start: datetime = DT_PEL_START,
     show_av_withdrawal_sold: bool = True,
     show_pea_withdrawal_sold: bool = True,
     **kwargs,
@@ -330,7 +329,6 @@ def make_plotly(
     :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
         Dataset names as keys, values as values.
-    :key dt_pel_start: PEL opening date (redundant with the first value in dates).
     :key show_av_withdrawal_sold: Show an indicator about the amount of net
         capital at the end of the AV contract. (default: True).
     :key show_pea_withdrawal_sold: Show an indicator about the amount of net
@@ -349,6 +347,8 @@ def make_plotly(
             annotation_text=f"{title} ({int(sold)} €)",
             annotation_position="top left",
         )
+
+    start_date = dates[0]
 
     # Reshape data for plotly express
     df = pd.DataFrame(data, index=dates)
@@ -382,7 +382,7 @@ def make_plotly(
         for label, values in data.items():
             if label.startswith("Assurance Vie"):
                 # Exact number of years (float required)
-                years_duration = (dates[-1] - dates[0]).days / 365.2425
+                years_duration = (dates[-1] - start_date).days / 365.2425
                 av_withdrawal_sold = get_av_withdrawal_sold(
                     values, current_date, years_duration
                 )
@@ -399,8 +399,8 @@ def make_plotly(
                 show_h_limit(pea_withdrawal_sold, f"{label} solde final")
 
     # PEL closure date (used to show an indicator only for PEL opened after 2011-03-01)
-    dt_pel_closure = dt_pel_start.replace(year=dt_pel_start.year + 15)
-    if dt_pel_start >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
+    dt_pel_closure = start_date.replace(year=start_date.year + 15)
+    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
         fig.add_vline(
             x=dt_pel_closure.timestamp() * 1000,
             line_dash="dash",
@@ -561,10 +561,9 @@ def get_cagr_df(
 
 def simulate(
     capital_initial: float = CAPITAL_INITIAL,
-    start_date: str = DATE_DEBUT,
     years_duration: int | float = DUREE_ANNEES,
     ipch: bool = IPCH,
-    dt_pel_start: datetime = DT_PEL_START,
+    start_date: datetime = START_DATE,
     pel_rate: float = PEL_RATE,
     av_fees_rate: float = FRAIS_GESTION_AV,
     pfu_enabled: bool = PFU_ENABLED,
@@ -609,7 +608,7 @@ def simulate(
 
     # PEL fixed rate
     # Rate may be fixed globally by user
-    pel_rate = pel_rate if pel_rate else find_pel_rate(dt_pel_start)
+    pel_rate = pel_rate if pel_rate else find_pel_rate(start_date)
 
     # Pending interests for annual capital accumulation savings plans
     pel_pending_interests = 0
@@ -621,7 +620,7 @@ def simulate(
     # WARNING: Les intérêts ne sont PAS calculés au prorata des jours restants du premier mois
     # (considéré comme complet).
     dates = pd.date_range(start=start_date, periods=years_duration * 12, freq="ME")
-    dates = pd.DatetimeIndex([dt_pel_start]).append(dates)
+    dates = pd.DatetimeIndex([start_date]).append(dates)
     for month, date in enumerate(dates[1:], 1):
         # -------- PEL --------
         # Always the same rate without tax (virtual)
@@ -630,7 +629,7 @@ def simulate(
         net_interest = get_pel_net_interest(
             pel,
             pel_rate,
-            dt_pel_start,
+            start_date,
             date,
             capital_initial=capital_initial,
             pfu_enabled=pfu_enabled,

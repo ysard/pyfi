@@ -114,7 +114,7 @@ def main():
     # Convert to datetime: We do not need hours, but values in dataframe are in datetime format
     dt_pel_start = ret["start_date"]
     dt_pel_start = datetime(dt_pel_start.year, dt_pel_start.month, dt_pel_start.day)
-    ret["dt_pel_start"] = dt_pel_start
+    ret["start_date"] = dt_pel_start
 
     # fig = make_graphs(*simulate(**ret), dt_pel_start=dt_pel_start, interactive=False)
     # st.pyplot(fig)
