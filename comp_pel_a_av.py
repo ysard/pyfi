@@ -220,6 +220,8 @@ def make_graphs(
 
     def show_h_limit(sold, title, color):
         """Show an horizontal indicator for the amount of net capital after full withdrawal"""
+        if math.isnan(sold):
+            return
         ax.axhline(sold, c=color, linestyle="--", lw=0.9, alpha=0.5)
         plt.text(
             start_date,
