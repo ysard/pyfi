@@ -2,6 +2,7 @@
 """Comparison of French investments: Life Insurance, PEL, Livret A, PEA (S&P 500),
 based on historical data.
 """
+
 # Standard imports
 from datetime import datetime
 
@@ -14,6 +15,7 @@ from matplotlib import colormaps
 # Local imports
 import commons as cm
 from readers import *
+
 try:
     from simul import rendement_minimal_global
 
@@ -273,7 +275,6 @@ def make_graphs(
             pea_withdrawal_sold = get_pea_withdrawal_sold(dates[-1], values[-1])
             show_h_limit(pea_withdrawal_sold, f"{label} solde final", color)
 
-
     # PEL closure date (used to show an indicator only for PEL opened after 2011-03-01)
     dt_pel_closure = dt_pel_start.replace(year=dt_pel_start.year + 15)
     if dt_pel_start >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
@@ -345,7 +346,6 @@ def make_plotly(
             annotation_position="top left",
         )
 
-
     # Reshape data for plotly express
     df = pd.DataFrame(data, index=dates)
     df = df.reset_index().rename(columns={"index": "Date"})
@@ -413,7 +413,7 @@ def make_plotly(
     fig.update_xaxes(
         dtick="M24",  # tick tous les 2 ans
         tickformat="%Y",
-        hoverformat="%B %Y"  # Title of the hover tooltip: month & year
+        hoverformat="%B %Y",  # Title of the hover tooltip: month & year
     )
 
     fig.update_traces(
@@ -517,7 +517,7 @@ def get_real_returns(
 def get_cagr_df(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-    years_duration: float
+    years_duration: float,
 ) -> pd.DataFrame:
     """Build dataframe of CAGR for each given dataset
 
@@ -561,9 +561,9 @@ def simulate(
     dt_pel_start: datetime = DT_PEL_START,
     pel_rate: float = PEL_RATE,
     av_fees_rate: float = FRAIS_GESTION_AV,
-    pfu_enabled: bool=PFU_ENABLED,
-    ir_tmi: float=IR_TMI,
-    **kwargs
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
+    **kwargs,
 ) -> tuple[pd.core.indexes.datetimes.DatetimeIndex, dict[str, list[float]]]:
     """Simulate various investment envelopes (PEL, Livret A, Assurance Vie)
 
@@ -770,7 +770,6 @@ def test_find_rates() -> None:
     last_year = max(cm.ASSURANCE_VIE_RATES.keys())
     expected = cm.ASSURANCE_VIE_RATES[last_year]
     assert found == expected, f"{last_year}: {found} != {expected}"
-
 
     found = find_sp500_rate(datetime(2026, 2, 1))
     # SP500
