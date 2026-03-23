@@ -290,7 +290,7 @@ def make_graphs(
         plt.text(
             dt_pel_closure,
             max(data["PEL"]),  # WARNING: Beware with data renaming
-            "Fin PEL",
+            "Clôture PEL",
             rotation=90,
             verticalalignment="bottom",
         )
@@ -410,7 +410,7 @@ def make_plotly(
             x=dt_pel_closure.timestamp() * 1000,
             line_dash="dash",
             opacity=0.5,
-            annotation_text="Fin PEL",
+            annotation_text="Clôture PEL",
             annotation_position="top",
         )
 
