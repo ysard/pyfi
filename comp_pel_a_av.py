@@ -5,6 +5,7 @@ based on historical data.
 
 # Standard imports
 from datetime import datetime
+import math
 
 # Custom imports
 import pandas as pd
@@ -340,6 +341,8 @@ def make_plotly(
 
     def show_h_limit(sold, title):
         """Show an horizontal indicator for the amount of net capital after full withdrawal"""
+        if math.isnan(sold):
+            return
         fig.add_hline(
             y=sold,
             line_dash="dot",
