@@ -17,6 +17,8 @@ illustrate the mechanisms of an investment over the investment period.*
 - Simulation of a “virtual PEL” without taxation to compare perception vs. reality;
 - Calculation of amounts received after taxation.
 
+An instance is set up [here](https://pyfi-sim.streamlit.app/).
+
 ## Installation
 
 ### From sources
