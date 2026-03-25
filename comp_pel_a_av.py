@@ -721,6 +721,76 @@ def simulate(
     return dates, data
 
 
+def get_year_end_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Extract end-of-year values for each investment wrapper
+
+    This function resamples the input DataFrame to yearly frequency and
+    selects the last available value for each year, effectively capturing
+    the portfolio value at each year-end.
+
+    :param df: DataFrame containing time series data indexed by datetime,
+        with one column per investment wrapper.
+    :return: DataFrame containing year-end values, indexed by year.
+    """
+    df_yearly_values = df.resample("YE").last()
+    df_yearly_values.index = df_yearly_values.index.year  # readability
+    return df_yearly_values
+
+
+def _build_yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Build a yearly summary including end-of-year values and annual returns
+
+    This function aggregates monthly data into yearly data and computes
+    the corresponding year-over-year returns. The result uses a MultiIndex
+    on columns to distinguish between absolute values and returns.
+
+    :param df: DataFrame containing time series data indexed by datetime,
+        with one column per investment wrapper.
+    :return: DataFrame with a MultiIndex on columns:
+        - First level: "value" or "return"
+        - Second level: investment wrapper names Indexed by year.
+    """
+    df_yearly_values = get_year_end_values(df)
+
+    # The return is calculated using the percentage change between consecutive
+    # year-end values. The first year will contain NaN values.
+    df_yearly_returns = df_yearly_values.pct_change()
+
+    # MultiIndex df
+    result = pd.concat(
+        {
+            "value": df_yearly_values,
+            "return": df_yearly_returns
+        },
+        axis=1
+    )
+
+    return result
+
+
+def build_yearly_summary(dates: pd.DatetimeIndex, data: dict[str, list[float]]) -> pd.DataFrame:
+    """Build a yearly summary including end-of-year values and annual returns
+
+    This function aggregates monthly data into yearly data and computes
+    the corresponding year-over-year returns. The result uses a MultiIndex
+    on columns to distinguish between absolute values and returns.
+
+    :param dates: Datetime index representing the simulation timeline
+        (typically monthly frequency).
+    :param data: Dictionary mapping investment wrapper names to a list
+        of simulated values over time.
+    """
+    # Build a pandas DataFrame from simulated investment data.
+    # Uses the provided datetime index and contains
+    # one column per investment wrapper (e.g., PEA, Life Insurance, etc.), with monthly values.
+    df = pd.DataFrame(data, index=dates)
+    df.index.name = "date"
+
+    df_summary = _build_yearly_summary(df)
+
+    return df_summary
+
+
 def test_find_rates() -> None:
     """Test find* functions to ensure proper dataset interpretation"""
 

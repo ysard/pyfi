@@ -10,7 +10,7 @@ from datetime import date, datetime
 import streamlit as st
 
 # Local imports
-from comp_pel_a_av import simulate, make_graphs, make_plotly, get_cagr_df
+from comp_pel_a_av import simulate, make_graphs, make_plotly, get_cagr_df, build_yearly_summary
 
 
 def web_interface():
@@ -260,6 +260,47 @@ def main():
     )
     print(df_returns)
 
+    # Add annual earnings table
+    st.subheader("Historique annuel")
+    df_summary = build_yearly_summary(dates, data)
+    # print(df_summary)
+
+    euro_col = {
+        "format": "euro",
+        "step": 1,
+        "disabled": True,
+    }
+    percent_col = {
+        "format": "percent",
+        "step": 0.0001,
+        "disabled": True,
+    }
+
+    column_config = {
+        # 2D dataframe, keys used by streamlit are the concatenation of the group + col name
+        "_".join((colgroup, column_name)): st.column_config.NumberColumn(
+            label=("Taux " if "return" == colgroup else "Capi ") + column_name,
+            help=(
+                "Rendement annuel réel (hors fiscalité en sortie)"
+                if "return" == colgroup else
+                "Montant annuel en euros (hors fiscalité en sortie)"
+            ),
+            **(percent_col if "return" == colgroup else euro_col)
+        )
+        for colgroup, column_name in df_summary.columns
+        if column_name != "date"
+    }
+    column_config["date"] = st.column_config.Column(
+        label="Années",
+        pinned=True,  # stay visible on the left side
+        disabled=True,  # disable editing
+    )
+
+    st.data_editor(
+        df_summary,
+        width="stretch",
+        column_config=column_config,
+    )
 
 if __name__ == "__main__":
     main()
