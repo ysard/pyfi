@@ -100,6 +100,23 @@ def get_ps_rate(current_date):
     return 18.6 / 100
 
 
+def get_av_ps_rate(current_date: datetime) -> float:
+    """Return the social-contribution rate for the simulated euro fund.
+
+    The simulation models a capital-guaranteed euro fund, not unit-linked assets.
+    For this type of contract, the rate remains 17.2% from 2026 under the
+    applicable exception; the general rate returned by ``get_ps_rate`` is 18.6%.
+    """
+    if current_date >= datetime(2026, 1, 1):
+        return 17.2 / 100
+    return get_ps_rate(current_date)
+
+
+def get_av_net_interest(gross_interest: float, current_date: datetime) -> float:
+    """Return euro-fund interest net of the social contributions due on crediting."""
+    return gross_interest * (1 - get_av_ps_rate(current_date))
+
+
 def get_pel_net_interest(
     pel_amount: float,
     pel_rate: float,
@@ -450,21 +467,22 @@ def get_av_withdrawal_sold(
 ) -> float:
     """Get the amount net of taxes in case of full liquidation of the AV
 
+    The simulated AV is a euro fund: social contributions are already deducted
+    when annual interest is credited (or reserved on accrued interest). They must
+    therefore not be charged a second time on withdrawal.
+
     :param av_values: Computed list of simulated values over the period
         (we need the amount of the primes to calculate the gains).
-    :param current_date: Used to compute the current PS rate and to get the annual rate
-        applied at the withdrawal date.
+    :param current_date: Used to obtain the annual rate applied at withdrawal.
     :param years_duration: Duration of the simulation.
     """
-    ps_rate = get_ps_rate(current_date)
-
     if not EXT_MODULE_FOUND:
-        # Naive withdrawal tax on AV
+        # Naive withdrawal tax on AV: annual PS are already netted out.
         print(av_values[-1])
         print(av_values[-1] - av_values[0])
         av_gains = av_values[-1] - av_values[0]
-        av_tax = av_gains * (ps_rate + IR_AV)  # NOTE: 8 years supposed, < 152000
-        av_withdrawal_sold = av_values[0] + av_gains - av_tax
+        av_tax = av_gains * IR_AV  # NOTE: assumes a contract older than 8 years, < 152000
+        av_withdrawal_sold = av_values[-1] - av_tax
         print(av_withdrawal_sold)
         return av_withdrawal_sold
 
@@ -477,7 +495,8 @@ def get_av_withdrawal_sold(
         encours=av_values[-1],
         primes=av_values[0],
         rachat=av_values[-1],  # Full withdrawal
-        taux_ps=ps_rate,
+        # All gains in this euro-fund simulation have already borne PS annually.
+        taux_ps=0.0,
         taux_av=av_annual_rate,
         frais_av=0,
         horizon=1,
@@ -649,7 +668,9 @@ def simulate(
         # -------- Assurance Vie --------
         av_annual_rate = find_av_rate(date)
         monthly_rate = (av_annual_rate - av_fees_rate) / 12
-        av_pending_interests += av * monthly_rate
+        # PS tax only
+        av_net_interest = get_av_net_interest(av * monthly_rate, date)
+        av_pending_interests += av_net_interest
 
         # -------- S&P 500 --------
         sp500_rate = find_sp500_rate(date)
@@ -703,7 +724,7 @@ def simulate(
     data = {
         "PEL": pel_values,  # WARNING: Beware with data renaming (sync in make_graphs)
         "Livret A": livret_values,
-        "Assurance Vie (fds €)": av_values,
+        "Assurance Vie (fds €, net)": av_values,
         "PEL virtuel SANS taxes": pel_values_wo_tax,
         "S&P500": sp500_values,  # WARNING: Beware with data renaming (sync in make_graphs)
     }
@@ -712,7 +733,7 @@ def simulate(
         {
             "PEL (infl)": pel_real_values,
             "Livret A (infl)": livret_real_values,
-            "Assurance Vie (fds €) (infl)": av_real_values,
+            "Assurance Vie (fds €, net) (infl)": av_real_values,
             "PEL virtuel SANS taxes (infl)": pel_real_values_wo_tax,
             "S&P500 (infl)": sp500_real_values,
         }
