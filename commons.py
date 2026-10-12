@@ -25,6 +25,9 @@ INFLATION_IPCH_RATES_FILEPATH = ASSETS_DIR / "Webstat_Export_fr_ICP.M.FR.N.00000
 # - Zone : France
 # - Périodicité : Mensuelle
 INFLATION_IPC_RATES_FILEPATH = ASSETS_DIR / "valeurs_mensuelles.csv"
+# Download Tool: https://cobwebscripts.com/tools/yfindler.html
+# https://github.com/ranaroussi/yfinance
+# https://bulkstockdatadownloader.app
 # ^SP500: https://fr.finance.yahoo.com/quote/%5ESPX/history/?frequency=1mo&filter=history&period1=-1325583000&period2=1772667522
 # SP500_RATES_FILEPATH = ASSETS_DIR / "^SPX.csv"
 # ^SP500TR (Total Return / dividendes réinvestis): https://finance.yahoo.com/quote/%5ESP500TR/
