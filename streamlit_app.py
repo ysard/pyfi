@@ -42,7 +42,7 @@ def web_interface():
 
     av_fees_rate = st.sidebar.slider("Frais gestion AV (%)", 0.0, 2.0, 0.0) / 100
 
-    st.sidebar.subheader("Fiscalité (PEL)")
+    st.sidebar.subheader("Fiscalité (PEL, PEA, AV)")
 
     # use_pfu checkbox must enable/disable the ir_tmi slider
     if "use_pfu" not in st.session_state:
