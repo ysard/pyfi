@@ -547,13 +547,36 @@ def get_av_withdrawal_sold(
     return av_withdrawal_sold
 
 
-def get_pea_withdrawal_sold(current_date, gross_capital):
+def get_pea_withdrawal_sold(
+    values: list,
+    current_date: datetime,
+    years_duration: int | float,
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
+) -> float:
     """Get the amount net of taxes in case of a full liquidation of the PEA
 
-    .. note:: We suppose that the PEA is 5 years old (no IR, just PS).
+    Taxes are not applied in the event of losses.
+
+    :param years_duration: No IR if the PEA is older than 5 years.
+    :key pfu_enabled: Use the flat tax rate in effect on the date of withdrawal
+        to calculate the net amounts at the time of withdrawal.
+        Note used if the PEA is older than 5 years. (default: True).
+    :key ir_tmi: Use the marginal tax rate instead of the flat tax to calculate
+        the net amounts at the time of withdrawal.
+        Note used if the PEA is older than 5 years. (default: 0.11).
     """
+    gross_capital = values[-1] - values[0]
+    if gross_capital < 0:
+        return gross_capital
+
+    pfu_rate = get_pfu_rate(current_date)
     ps_rate = get_ps_rate(current_date)
-    return gross_capital * (1 - ps_rate)
+    if years_duration and years_duration >= 5:
+        # No IR if the PEA is older than 5 years
+        ir_tmi = 0.0
+        pfu_enabled=False
+    return gross_capital * (1 - (pfu_rate if pfu_enabled else (ps_rate + ir_tmi)))
 
 
 def get_real_returns(
