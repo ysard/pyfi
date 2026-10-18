@@ -224,6 +224,9 @@ def make_graphs(
     show_av_withdrawal_sold: bool = True,
     show_pea_withdrawal_sold: bool = True,
     interactive=True,
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
+    **kwargs,
 ):
     """Build graph according to the given label/values, using Matplotlib backend
 
@@ -236,6 +239,10 @@ def make_graphs(
         capital at the end of the PEA contract. (default: True).
     :key interactive: Enable the matplotlib interactive graph
         (not compatible with streamlit app). (default: True).
+    :key pfu_enabled: Use the flat tax rate in effect on the date of withdrawal
+        to calculate the net amounts at the time of withdrawal (PEA, AV). (default: True).
+    :key ir_tmi: Use the marginal tax rate instead of the flat tax to calculate
+        the net amounts at the time of withdrawal (PEA, AV). (default: 0.11).
     :return: matplotlib figure
     :rtype: <matplotlib.figure.Figure>
     """
@@ -266,6 +273,10 @@ def make_graphs(
         for color, (label, values) in zip(iter(colors), data.items())
     ]
 
+    # Exact number of years (float required)
+    current_date = dates[-1]
+    years_duration = ((dates[-1] - dates[0]).days + 1) / 365.2425
+
     # AV limit: Net capital
     if show_av_withdrawal_sold:
         # WARNING: Beware with data renaming
@@ -274,13 +285,12 @@ def make_graphs(
             for color, (label, av_values) in zip(iter(colors), data.items())
             if label.startswith("Assurance Vie")
         )
-        current_date = dates[-1]
-        # Exact number of years (float required)
-        years_duration = (dates[-1] - start_date).days / 365.2425
+        ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
+
         for color, (label, av_values) in g:
             print(f"{label}:")
             av_withdrawal_sold = get_av_withdrawal_sold(
-                av_values, current_date, years_duration
+                av_values, current_date, years_duration, ir_rate
             )
             show_h_limit(av_withdrawal_sold, f"{label} solde final", color)
 
@@ -301,12 +311,16 @@ def make_graphs(
         )
 
         for color, (label, values) in g:
-            pea_withdrawal_sold = get_pea_withdrawal_sold(dates[-1], values[-1])
+            pea_withdrawal_sold = get_pea_withdrawal_sold(
+                values, current_date, years_duration,
+                pfu_enabled=pfu_enabled,
+                ir_tmi=ir_tmi
+            )
             show_h_limit(pea_withdrawal_sold, f"{label} solde final", color)
 
     # PEL closure date (used to show an indicator only for PEL opened after 2011-03-01)
     dt_pel_closure = start_date.replace(year=start_date.year + 15)
-    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
+    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= current_date:
         # Forced closure
         ax.axvline(dt_pel_closure, color="blue", linestyle="--", lw=0.9, alpha=0.5)
         plt.text(
@@ -347,6 +361,8 @@ def make_plotly(
     data: dict[str, list[float]],
     show_av_withdrawal_sold: bool = True,
     show_pea_withdrawal_sold: bool = True,
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
     **kwargs,
 ):
     """Build graph according to the given label/values, using Plotly backend
@@ -358,6 +374,10 @@ def make_plotly(
         capital at the end of the AV contract. (default: True).
     :key show_pea_withdrawal_sold: Show an indicator about the amount of net
         capital at the end of the PEA contract. (default: True).
+    :key pfu_enabled: Use the flat tax rate in effect on the date of withdrawal
+        to calculate the net amounts at the time of withdrawal (PEA, AV). (default: True).
+    :key ir_tmi: Use the marginal tax rate instead of the flat tax to calculate
+        the net amounts at the time of withdrawal (PEA, AV). (default: 0.11).
     :return: plotly figure
     :rtype: <plotly.graph_objs._figure.Figure>
     """
@@ -402,16 +422,20 @@ def make_plotly(
         annotation_position="bottom left",
     )
 
+    # Exact number of years (float required)
+    current_date = dates[-1]
+    years_duration = ((dates[-1] - dates[0]).days + 1) / 365.2425
+
     # AV limit: Net capital
     if show_av_withdrawal_sold:
-        current_date = dates[-1]
         # WARNING: Beware with data renaming (sync in make_graphs)
+        ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
+
         for label, values in data.items():
             if label.startswith("Assurance Vie"):
-                # Exact number of years (float required)
-                years_duration = (dates[-1] - start_date).days / 365.2425
+                print(f"{label}:")
                 av_withdrawal_sold = get_av_withdrawal_sold(
-                    values, current_date, years_duration
+                    values, current_date, years_duration, ir_rate
                 )
 
                 show_h_limit(av_withdrawal_sold, f"{label} AV solde final")
@@ -421,13 +445,17 @@ def make_plotly(
         # WARNING: Beware with data renaming (sync in make_graphs)
         for label, values in data.items():
             if label.startswith("S&P500"):
-                pea_withdrawal_sold = get_pea_withdrawal_sold(dates[-1], values[-1])
+                pea_withdrawal_sold = get_pea_withdrawal_sold(
+                    values, current_date, years_duration,
+                    pfu_enabled=pfu_enabled,
+                    ir_tmi=ir_tmi,
+                )
 
                 show_h_limit(pea_withdrawal_sold, f"{label} solde final")
 
     # PEL closure date (used to show an indicator only for PEL opened after 2011-03-01)
     dt_pel_closure = start_date.replace(year=start_date.year + 15)
-    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= dates[-1]:
+    if start_date >= datetime(2011, 3, 1) and dt_pel_closure <= current_date:
         fig.add_vline(
             x=dt_pel_closure.timestamp() * 1000,
             line_dash="dash",
@@ -468,7 +496,7 @@ def make_plotly(
 
 
 def get_av_withdrawal_sold(
-    av_values: list, current_date: datetime, years_duration: int | float
+    av_values: list, current_date: datetime, years_duration: int | float, ir_rate: float
 ) -> float:
     """Get the amount net of taxes in case of full liquidation of the AV
 
