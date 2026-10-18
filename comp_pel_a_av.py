@@ -68,7 +68,8 @@ def get_pfu_rate(current_date: datetime) -> float:
     """Return the flat tax rate effective on the fiven date"""
     return PFU if current_date < datetime(2026, 1, 1) else PFU_2026
 
-def get_ps_rate(current_date):
+
+def get_ps_rate(current_date: datetime) -> float:
     """Get the social security contributions rate effective on the given date
 
     Table from: https://www.moneyvox.fr/placement/prelevements-sociaux.php
@@ -117,7 +118,7 @@ def get_av_ps_rate(current_date: datetime) -> float:
 
 
 def get_av_net_interest(gross_interest: float, current_date: datetime) -> float:
-    """Return euro-fund interest net of the social contributions due on crediting."""
+    """Return euro-fund interest net of the social contributions due on crediting"""
     return gross_interest * (1 - get_av_ps_rate(current_date))
 
 
