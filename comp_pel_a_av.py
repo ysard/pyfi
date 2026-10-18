@@ -285,7 +285,11 @@ def make_graphs(
             for color, (label, av_values) in zip(iter(colors), data.items())
             if label.startswith("Assurance Vie")
         )
-        ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
+        ir_rate = (
+            get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1])
+            if pfu_enabled
+            else ir_tmi
+        )
 
         for color, (label, av_values) in g:
             print(f"{label}:")
@@ -314,7 +318,7 @@ def make_graphs(
             pea_withdrawal_sold = get_pea_withdrawal_sold(
                 values, current_date, years_duration,
                 pfu_enabled=pfu_enabled,
-                ir_tmi=ir_tmi
+                ir_tmi=ir_tmi,
             )
             show_h_limit(pea_withdrawal_sold, f"{label} solde final", color)
 
@@ -429,7 +433,11 @@ def make_plotly(
     # AV limit: Net capital
     if show_av_withdrawal_sold:
         # WARNING: Beware with data renaming (sync in make_graphs)
-        ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
+        ir_rate = (
+            get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1])
+            if pfu_enabled
+            else ir_tmi
+        )
 
         for label, values in data.items():
             if label.startswith("Assurance Vie"):
@@ -575,7 +583,7 @@ def get_pea_withdrawal_sold(
     if years_duration and years_duration >= 5:
         # No IR if the PEA is older than 5 years
         ir_tmi = 0.0
-        pfu_enabled=False
+        pfu_enabled = False
     return gross_capital * (1 - (pfu_rate if pfu_enabled else (ps_rate + ir_tmi)))
 
 
@@ -612,11 +620,23 @@ def get_real_returns(
         if net:
             if "Assurance Vie" in label:
                 # Use the current withdrawal date
-                ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
-                final_value = get_av_withdrawal_sold(values, dates[-1], years_duration, ir_rate)
+                ir_rate = (
+                    get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1])
+                    if pfu_enabled
+                    else ir_tmi
+                )
+                final_value = get_av_withdrawal_sold(
+                    values, dates[-1], years_duration, ir_rate
+                )
                 print("AV:", values[-1], "=>", final_value)
             elif "S&P500" in label:
-                final_value = get_pea_withdrawal_sold(values, dates[-1], years_duration, pfu_enabled=pfu_enabled, ir_tmi=ir_tmi)
+                final_value = get_pea_withdrawal_sold(
+                    values,
+                    dates[-1],
+                    years_duration,
+                    pfu_enabled=pfu_enabled,
+                    ir_tmi=ir_tmi,
+                )
                 # print("PEA:", values[-1], "=>", final_value)
 
         real_return = (final_value / values[0]) ** (1 / years_duration) - 1
@@ -876,7 +896,9 @@ def _build_yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def build_yearly_summary(dates: pd.DatetimeIndex, data: dict[str, list[float]]) -> pd.DataFrame:
+def build_yearly_summary(
+    dates: pd.DatetimeIndex, data: dict[str, list[float]]
+) -> pd.DataFrame:
     """Build a yearly summary including end-of-year values and annual returns
 
     This function aggregates monthly data into yearly data and computes
