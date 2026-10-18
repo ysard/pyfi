@@ -50,7 +50,6 @@ def web_interface():
 
     pfu_enabled = st.sidebar.checkbox("Utiliser PFU 30% (31.4% en 2026)", key="use_pfu")
 
-    ps = 0.172
     ir_tmi = (
         st.sidebar.select_slider(
             "TMI (%)",
@@ -60,8 +59,6 @@ def web_interface():
         )
         / 100
     )
-
-    pfu = 0.30 if pfu_enabled else None
 
     st.sidebar.subheader("Inflation")
 
