@@ -943,12 +943,28 @@ def test_get_pea_tax():
     """Test taxation on withdrawal from a PEA"""
 
     # PS: 17.2%
-    found = get_pea_withdrawal_sold(datetime(2025, 12, 31), 10000)
+    found = get_pea_withdrawal_sold([0, 10000], datetime(2025, 12, 31), 5, ir_tmi=0.0, pfu_enabled=False)
     assert found == 8280
 
     # PS: 18.6%
-    found = get_pea_withdrawal_sold(datetime(2026, 1, 1), 10000)
+    found = get_pea_withdrawal_sold([0, 10000], datetime(2026, 1, 1), 5, ir_tmi=0.0, pfu_enabled=False)
     assert round(found, 0) == 8140, found
+
+    # PS: 18.6% + IR: 11%: IR is due if PEA < 5 years
+    found = get_pea_withdrawal_sold([0, 10000], datetime(2026, 1, 1), 4, ir_tmi=0.11, pfu_enabled=False)
+    assert round(found, 0) == 7040, found
+
+    # PFU: 30%: IR is due if PEA < 5 years
+    found = get_pea_withdrawal_sold([0, 10000], datetime(2025, 12, 31), 4)
+    assert found == 7000
+
+    # PFU: 31.4%: IR is due if PEA < 5 years
+    found = get_pea_withdrawal_sold([0, 10000], datetime(2026, 1, 1), 4)
+    assert round(found, 0) == 6860, found
+
+    # No taxes if losses
+    found = get_pea_withdrawal_sold([10000, 0], datetime(2026, 1, 1), 4)
+    assert round(found, 0) == -10000, found
 
 
 if __name__ == "__main__":
