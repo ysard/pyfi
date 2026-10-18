@@ -64,6 +64,10 @@ PEL_YEARS_10 = None
 PEL_HISTORICAL_PS = []
 
 
+def get_pfu_rate(current_date: datetime) -> float:
+    """Return the flat tax rate effective on the fiven date"""
+    return PFU if current_date < datetime(2026, 1, 1) else PFU_2026
+
 def get_ps_rate(current_date):
     """Get the social security contributions rate effective on the given date
 
