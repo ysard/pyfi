@@ -527,26 +527,43 @@ def get_pea_withdrawal_sold(current_date, gross_capital):
 def get_real_returns(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
-):
+    pfu_enabled=None,
+    ir_tmi=None,
+) -> dict[str, list]:
     """Get average real yield for every given dataset
 
     Taux de croissance annuel composé / Compound annual growth rate (CAGR)
 
     :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
+    :key pfu_enabled: Use the flat tax rate in effect on the date of withdrawal
+        to calculate the net amounts at the time of withdrawal (PEA, AV).
+        Set with `ir_tmi` to None to get gross values.
+        (default: None).
+    :key ir_tmi: Use the marginal tax rate instead of the flat tax to calculate
+        the net amounts at the time of withdrawal (PEA, AV).
+        Set with `pfu_enabled` to None to get gross values.
+        (default: None).
     """
+    net = pfu_enabled or ir_tmi is not None
     real_returns = {}
 
     # Exact number of years (float required)
-    years_duration = (dates[-1] - dates[0]).days / 365.2425
+    years_duration = ((dates[-1] - dates[0]).days + 1) / 365.2425
 
     for label, values in data.items():
-        final_value = (
-            # Use the current withdrawal date
-            get_av_withdrawal_sold(values, dates[-1], years_duration)
-            if "Assurance Vie" in label
-            else values[-1]
-        )
+        final_value = values[-1]
+
+        if net:
+            if "Assurance Vie" in label:
+                # Use the current withdrawal date
+                ir_rate = get_pfu_rate(dates[-1]) - get_av_ps_rate(dates[-1]) if pfu_enabled else ir_tmi
+                final_value = get_av_withdrawal_sold(values, dates[-1], years_duration, ir_rate)
+                print("AV:", values[-1], "=>", final_value)
+            elif "S&P500" in label:
+                final_value = get_pea_withdrawal_sold(values, dates[-1], years_duration, pfu_enabled=pfu_enabled, ir_tmi=ir_tmi)
+                # print("PEA:", values[-1], "=>", final_value)
+
         real_return = (final_value / values[0]) ** (1 / years_duration) - 1
 
         real_returns[label] = round(real_return * 100, 2)
@@ -558,13 +575,21 @@ def get_real_returns(
 def get_cagr_df(
     dates: pd.core.indexes.datetimes.DatetimeIndex,
     data: dict[str, list[float]],
+    pfu_enabled: bool = PFU_ENABLED,
+    ir_tmi: float = IR_TMI,
+    **kwargs,
 ) -> pd.DataFrame:
     """Build dataframe of CAGR for each given dataset
+
+    TODO: Full tables for gross AND net
 
     :param dates: Range of monthly dates on the period specified by the user.
     :param data: All datasets of values simulated values over the period.
     """
+    # Gross returns
     returns = get_real_returns(dates, data)
+    # Net returns
+    net_returns = get_real_returns(dates, data, pfu_enabled=pfu_enabled, ir_tmi=ir_tmi)
 
     # df_returns = pd.DataFrame.from_dict(
     #     returns,
@@ -579,11 +604,13 @@ def get_cagr_df(
             "Capital final (€)": round(values[-1], 0),
             "Gains (€)": round(values[-1] - values[0], 0),
             "CAGR réel (%)": returns[label],
+            "CAGR réel net (%)": net_returns[label],
         }
         for label, values in data.items()
     ]
     df_summary = pd.DataFrame(summary)
     df_summary["CAGR réel (%)"] = df_summary["CAGR réel (%)"].map("{:.2f} %".format)
+    df_summary["CAGR réel net (%)"] = df_summary["CAGR réel net (%)"].map("{:.2f} %".format)
 
     return df_summary
 

@@ -228,7 +228,7 @@ def main():
 
     # Add CAGR table
     st.subheader("Rendement annuel composé réel")
-    df_returns = get_cagr_df(dates, data)
+    df_returns = get_cagr_df(dates, data, **ret)
 
     st.data_editor(
         df_returns,
@@ -252,6 +252,12 @@ def main():
             ),
             "CAGR réel (%)": st.column_config.NumberColumn(
                 help="Rendement annuel composé réel (hors fiscalité en sortie)",
+                format="percent",
+                step=0.0001,
+                disabled=True,
+            ),
+            "CAGR réel net (%)": st.column_config.NumberColumn(
+                help="Rendement annuel composé réel (net de frais de sortie)",
                 format="percent",
                 step=0.0001,
                 disabled=True,
