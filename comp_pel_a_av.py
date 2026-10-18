@@ -528,8 +528,11 @@ def get_av_withdrawal_sold(
         encours=av_values[-1],
         primes=av_values[0],
         rachat=av_values[-1],  # Full withdrawal
-        # All gains in this euro-fund simulation have already borne PS annually.
+        # All gains in this euro-fund simulation (not UC): PS are removed annually.
         taux_ps=0.0,
+        # Future euro-fund returns must also be reduced by annual PS.
+        # Used only to evaluate financial loss due to a buyback for the next year
+        taux_ps_annuels=get_av_ps_rate(current_date),
         taux_av=av_annual_rate,
         frais_av=0,
         horizon=1,
