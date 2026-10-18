@@ -127,9 +127,9 @@ def get_pel_net_interest(
     pel_rate: float,
     open_date: datetime,
     current_date: datetime,
-    capital_initial: float = CAPITAL_INITIAL,
-    pfu_enabled: bool = PFU_ENABLED,
-    ir_tmi: float = IR_TMI,
+    capital_initial: float,
+    pfu_enabled: bool,
+    ir_tmi: float,
 ) -> float:
     """Compute the monthly interest amount for the given PEL characteristics
 
@@ -155,7 +155,7 @@ def get_pel_net_interest(
 
     gross_interest = pel_amount * pel_rate / 12
     ps_rate = get_ps_rate(current_date)
-    pfu_rate = PFU if current_date < datetime(2026, 1, 1) else PFU_2026
+    pfu_rate = get_pfu_rate(current_date)
 
     age_years = cm.num_years(open_date, end=current_date)
 
@@ -660,9 +660,9 @@ def simulate(
             pel_rate,
             start_date,
             date,
-            capital_initial=capital_initial,
-            pfu_enabled=pfu_enabled,
-            ir_tmi=ir_tmi,
+            capital_initial,
+            pfu_enabled,
+            ir_tmi,
         )
         pel_pending_interests += net_interest
 
