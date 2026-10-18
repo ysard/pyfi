@@ -537,7 +537,8 @@ def get_av_withdrawal_sold(
         frais_av=0,
         horizon=1,
         couple=False,
-        pre_2017=True,
+        # Opened before sept 2017 ?
+        pre_2017=current_date < datetime(2017 + round(years_duration), 9, 27),
         duration=years_duration,
         gains_post_2017=0,
         ir_rate=ir_rate,
