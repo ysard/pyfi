@@ -537,7 +537,7 @@ def get_av_withdrawal_sold(
         pre_2017=True,
         duration=years_duration,
         gains_post_2017=0,
-        bareme_ir=None,
+        ir_rate=ir_rate,
     )
 
     return av_withdrawal_sold
