@@ -625,6 +625,7 @@ def get_real_returns(
                     if pfu_enabled
                     else ir_tmi
                 )
+                print(f"{label}:")
                 final_value = get_av_withdrawal_sold(
                     values, dates[-1], years_duration, ir_rate
                 )
