@@ -14,17 +14,23 @@ ASSETS_DIR = Path("./assets/")
 PEL_RATES_FILEPATH = ASSETS_DIR / "Webstat_Export_fr_MIR1.M.FR.B.L22FRSP.H.R.A.2250U6.EUR.N.csv"
 # https://webstat.banque-france.fr/fr/catalogue/mir1/MIR1.M.FR.B.L23FRLA.D.R.A.2230U6.EUR.O
 LIVRETA_RATES_FILEPATH = ASSETS_DIR / "Webstat_Export_fr_MIR1.M.FR.B.L23FRLA.D.R.A.2230U6.EUR.O.csv"
-# IPCH: https://webstat.banque-france.fr/fr/catalogue/icp/ICP.M.FR.N.000000.4.ANR
-INFLATION_IPCH_RATES_FILEPATH = ASSETS_DIR / "Webstat_Export_fr_ICP.M.FR.N.000000.4.ANR.csv"
-# IPC: https://www.insee.fr/fr/statistiques/serie/001768580
-# indice brut: https://www.insee.fr/fr/statistiques/serie/000641194
-# Jeux de données :
+# IPC  base 2015: https://webstat.banque-france.fr/fr/catalogue/icp/ICP.M.FR.N.000000.4.ANR
+# IPCH base 2025: https://webstat.banque-france.fr/fr/catalogue/hicp/HICP.M.FR.N.000000.4D0.ANR
+INFLATION_IPCH_RATES_FILEPATH = ASSETS_DIR / "Webstat_Export_fr_HICP.M.FR.N.000000.4D0.ANR.csv"
+# IPC insee, dataset :
 # - Type de ménage : Ensemble des ménages
 # - Produits : Ensemble hors tabac
 # - Nature : Glissement annuel
 # - Zone : France
 # - Périodicité : Mensuelle
-INFLATION_IPC_RATES_FILEPATH = ASSETS_DIR / "valeurs_mensuelles.csv"
+# IPC base 2015, retropolation to 1991: https://www.insee.fr/fr/statistiques/serie/001768580
+# indice brut: https://www.insee.fr/fr/statistiques/serie/000641194
+# IPC base 2025, retropolation to 1996
+# Variation mensuelle
+# https://www.insee.fr/fr/statistiques/serie/011814057
+# Glissement annuel <=
+# https://www.insee.fr/fr/statistiques/serie/011814058
+INFLATION_IPC_RATES_FILEPATH = ASSETS_DIR / "valeurs_mensuelles_2025.csv"
 # Download Tool: https://cobwebscripts.com/tools/yfindler.html
 # https://github.com/ranaroussi/yfinance
 # https://bulkstockdatadownloader.app
