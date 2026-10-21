@@ -164,7 +164,7 @@ def find_pel_rate(searched_date: datetime) -> float:
 
 @lru_cache
 def find_inflation_rate(searched_date: datetime, ipch: bool = False) -> float:
-    """Find the current inflation rate according to the given date"""
+    """Find the current monthly inflation rate (year-over-year change) for the given date"""
     if ipch:
         infl_rates = load_banque_de_france_dataset(cm.INFLATION_IPCH_RATES_FILEPATH)
     else:
