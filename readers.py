@@ -79,6 +79,8 @@ def load_insee_dataset(filepath: str) -> pd.core.frame.DataFrame:
         skiprows=4,  # ignore header lines
         header=None,
         names=["date", "taux", "qual_code"],
+        # Support for "with revisions" format: 1 group of 3 columns per revision (once a month)
+        usecols=[0, 1, 2],
     )
 
     # Convert data types
